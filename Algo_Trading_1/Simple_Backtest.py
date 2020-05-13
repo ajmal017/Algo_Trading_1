@@ -20,7 +20,7 @@ def get_trade_day_data(csv_fname):
       yield trade_record
       
 LOCALTIME = pytz.timezone('US/Eastern')
-      
+      #
 buyTrigger = 0.003
 sellTrigger = 0.002
 takeProfit = 0.002

@@ -6,7 +6,7 @@ Created on May 2, 2020
 import alpaca_trade_api as tradeapi
 import alpaca_conf_paper
 import pandas as pd
-import asyncio
+import asyncio#
 import datetime
 from alpaca_trade_api import StreamConn
 import os

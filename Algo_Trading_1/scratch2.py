@@ -8,7 +8,7 @@ Created on May 5, 2020
 from USTradingCalendar import USTradingCalendar
 import pandas as pd
 import pytz
-
+#
 import alpaca_trade_api as tradeapi
 import alpaca_conf_paper
 

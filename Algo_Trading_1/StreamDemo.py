@@ -8,7 +8,7 @@ import os
 import pandas as pd
 from tqdm import tqdm
 import websockets
-
+#
 import alpaca_trade_api as tradeapi
 #import alpaca_conf_paper # loads API Keys as environment variables
 import json

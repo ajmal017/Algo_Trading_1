@@ -8,6 +8,7 @@ Download historical minute by minute data for a symbol between a range of dates
 """
 import os
 
+#
 import pandas as pd
 from tqdm import tqdm
 

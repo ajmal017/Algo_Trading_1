@@ -4,7 +4,7 @@ Created on May 2, 2020
 @author: aac75
 '''
 import alpaca_trade_api as tradeapi
-import alpaca_conf_paper
+import alpaca_conf_paper#
 import pandas as pd
 import asyncio
 import datetime
