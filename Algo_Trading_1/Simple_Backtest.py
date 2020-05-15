@@ -12,7 +12,6 @@ import os
 from USTradingCalendar import USTradingCalendar
 import pytz
 import glob
-from _ast import Or
 
 def get_trade_day_data(csv_fname):
   with open(csv_fname, "r") as trade_records:
@@ -21,19 +20,21 @@ def get_trade_day_data(csv_fname):
       
 LOCALTIME = pytz.timezone('US/Eastern')
       #
-buyTrigger = 0.003
+buyTrigger = 0.002
 sellTrigger = 0.002
 takeProfit = 0.002
-minDrop = 0.003
+minDrop = 0.0005
 investment_amount = 5000
-symbol = 'SPXL'
+symbol = 'TSLA'
 
 #logname = 'LOGQ-B{}-S{}-TP{}-{}-{}.csv'.format(int(buyTrigger * 10000), int(sellTrigger * 10000), int(takeProfit * 10000), symbol, date)
 logname = 'LOGQ-B{}-S{}-TP{}-MD{}-{}.csv'.format(int(buyTrigger * 10000), int(sellTrigger * 10000), int(takeProfit * 10000), int(minDrop * 10000), symbol) 
+#logname = 'LOGQ-B{}-S{}-MD{}-{}.csv'.format(int(buyTrigger * 10000), int(sellTrigger * 10000), int(minDrop * 10000), symbol) 
+
 summary_df = pd.DataFrame(columns=['DATE', 'NUM_POSITIONS', 'RETURN', 'IND P/L', 'TOTAL P/L'])
 totalProfit = 0
     
-DATADIR = os.path.join('..', 'historical-market-data', symbol, '2020crash', 'test1')
+DATADIR = os.path.join('..', 'historical-market-data', symbol)
 log_file_name = os.path.join(DATADIR, logname)
 
 data_file_name_list = glob.glob((DATADIR + '\\Q-' + symbol + '-*.csv'))
@@ -50,9 +51,8 @@ for data_file_name in data_file_name_list:
     date = data_file_name.replace(DATADIR + '\\Q-' + symbol + '-','')
     date = date.replace('.csv','')
     
-    fname = 'Q-{}-{}.csv'.format(symbol, date)
-    full_name = os.path.join(DATADIR, fname)
-    #log_name = os.path.join(DATADIR, logname)
+    fname = 'DAYLOGQ-{}-{}.csv'.format(symbol, date)
+    day_log_name = os.path.join(DATADIR, fname)
 
     trade_day_data = get_trade_day_data(data_file_name)
     next(trade_day_data)
@@ -79,11 +79,8 @@ for data_file_name in data_file_name_list:
             break
     
     curHigh = price
-    curHigh_datetime = cur_time
     curLow = price
-    curLow_datetime = cur_time
-    prevHigh = price
-    prevHigh_datetime = cur_time 
+    maxDrop = 0
     profit = 0
     num_positions = 0
     buyPrice = 0
@@ -125,18 +122,13 @@ for data_file_name in data_file_name_list:
         # Buy trigger
         if ((price - curLow) >= (curLow * buyTrigger)):
             # Check if the price actually dropped before hitting the current low
-            if ((curHigh_datetime < curLow_datetime and ((curHigh - curLow) >= (minDrop * curHigh)))
-                 or ((prevHigh - curLow) >= (minDrop * prevHigh))):
+            if maxDrop >= (minDrop * curHigh):
                 if not inPosition:
                     inPosition = True
                     buyPrice = price
                     num_positions += 1
                     curHigh = price
-                    curHigh_datetime = cur_time
                     curLow = price
-                    curLow_datetime = cur_time
-                    prevHigh = price
-                    prevHigh_datetime = cur_time
                     trades_df = trades_df.append({
                         'POSITION #': num_positions,
                         'TIME': cur_time.strftime('%Y-%m-%d-%H-%M-%S'),
@@ -146,7 +138,7 @@ for data_file_name in data_file_name_list:
                         'P/L': float('nan')
                         }, ignore_index=True)
                 
-        # Take profit
+        #Take profit
         if (price - buyPrice) >= (buyPrice * takeProfit):
             if inPosition:
                 inPosition = False
@@ -154,11 +146,8 @@ for data_file_name in data_file_name_list:
                 curProfit = investment_amount * percent_return   
                 profit += curProfit  
                 curHigh = price
-                curHigh_datetime = cur_time
                 curLow = price
-                curLow_datetime = cur_time
-                prevHigh = price
-                prevHigh_datetime = cur_time
+                maxDrop = 0
                 trades_df = trades_df.append({
                     'POSITION #': num_positions,
                     'TIME': cur_time.strftime('%Y-%m-%d-%H-%M-%S'),
@@ -168,7 +157,7 @@ for data_file_name in data_file_name_list:
                     'P/L': curProfit
                     }, ignore_index=True)
         
-        # Stop loss
+        # Stop loss/sell trigger
         if (curHigh - price) >= (curHigh * sellTrigger):
             if inPosition:
                 inPosition = False
@@ -176,11 +165,8 @@ for data_file_name in data_file_name_list:
                 curProfit = investment_amount * percent_return   
                 profit += curProfit  
                 curHigh = price
-                curHigh_datetime = cur_time
                 curLow = price
-                curLow_datetime = cur_time
-                prevHigh = price
-                prevHigh_datetime = cur_time
+                maxDrop = 0
                 trades_df = trades_df.append({
                     'POSITION #': num_positions,
                     'TIME': cur_time.strftime('%Y-%m-%d-%H-%M-%S'),
@@ -192,16 +178,14 @@ for data_file_name in data_file_name_list:
                     
         
         if price > curHigh:
-            # Need to remember the high if it happened before the current low to check for minDrop
-            if (curHigh_datetime < curLow_datetime):
-                prevHigh = curHigh
-                prevHigh_datetime = curHigh_datetime
             curHigh = price
-            curHigh_datetime = cur_time
+            
+        if (curHigh - price) > maxDrop:
+            maxDrop = curHigh - price
+            curLow = price
         
         if price < curLow:
             curLow = price
-            curLow_datetime = cur_time
             
         lastTime = cur_time
         
@@ -224,7 +208,8 @@ for data_file_name in data_file_name_list:
         'TOTAL P/L': totalProfit
         }, ignore_index=True)
     
-    print('Date = {}, Profit = {}'.format(date, profit))
+    print('Date = {}, Profit = {}, Num Positions = {}'.format(date, profit, num_positions))
+    #trades_df.to_csv(day_log_name)
     
 print('Total Profit = {}'.format(totalProfit)) 
 summary_df.to_csv(log_file_name)   
