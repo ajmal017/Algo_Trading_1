@@ -12,7 +12,7 @@ import os
 from USTradingCalendar import USTradingCalendar
 import pytz
 import glob
-
+#
 def get_trade_day_data(csv_fname):
   with open(csv_fname, "r") as trade_records:
     for trade_record in csv.reader(trade_records):
