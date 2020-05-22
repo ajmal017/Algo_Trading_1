@@ -20,12 +20,12 @@ def get_trade_day_data(csv_fname):
       
 LOCALTIME = pytz.timezone('US/Eastern')
       #
-buyTrigger = 0.002
-sellTrigger = 0.002
-takeProfit = 0.002
-minDrop = 0.0005
+buyTrigger = 0.004
+sellTrigger = 0.004
+takeProfit = 0.004
+minDrop = 0.002
 investment_amount = 5000
-symbol = 'TSLA'
+symbol = 'SPXL'
 
 #logname = 'LOGQ-B{}-S{}-TP{}-{}-{}.csv'.format(int(buyTrigger * 10000), int(sellTrigger * 10000), int(takeProfit * 10000), symbol, date)
 logname = 'LOGQ-B{}-S{}-TP{}-MD{}-{}.csv'.format(int(buyTrigger * 10000), int(sellTrigger * 10000), int(takeProfit * 10000), int(minDrop * 10000), symbol) 
@@ -34,7 +34,7 @@ logname = 'LOGQ-B{}-S{}-TP{}-MD{}-{}.csv'.format(int(buyTrigger * 10000), int(se
 summary_df = pd.DataFrame(columns=['DATE', 'NUM_POSITIONS', 'RETURN', 'IND P/L', 'TOTAL P/L'])
 totalProfit = 0
     
-DATADIR = os.path.join('..', 'historical-market-data', symbol)
+DATADIR = os.path.join('..', 'historical-market-data', symbol, 'test2')
 log_file_name = os.path.join(DATADIR, logname)
 
 data_file_name_list = glob.glob((DATADIR + '\\Q-' + symbol + '-*.csv'))
@@ -212,7 +212,7 @@ for data_file_name in data_file_name_list:
     #trades_df.to_csv(day_log_name)
     
 print('Total Profit = {}'.format(totalProfit)) 
-summary_df.to_csv(log_file_name)   
+#summary_df.to_csv(log_file_name)   
     
     
     
