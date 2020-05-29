@@ -35,9 +35,9 @@ if __name__ == '__main__':
     api = tradeapi.REST()
     
     DATADIR = os.path.join('..', 'historical-market-data') # download directory for the data
-    SYMBOLS = ['TSLA']  # list of symbols we're interested
-    FROM_DATE = '2019-02-01'
-    TO_DATE = '2019-03-01'
+    SYMBOLS = ['SPXL']  # list of symbols we're interested
+    FROM_DATE = '2019-02-10'
+    TO_DATE = '2019-02-25'
     
     holidays = USTradingCalendar.get_trading_close_holidays(FROM_DATE,TO_DATE)
     

@@ -34,7 +34,7 @@ logname = 'LOGQ-B{}-S{}-TP{}-MD{}-{}.csv'.format(int(buyTrigger * 10000), int(se
 summary_df = pd.DataFrame(columns=['DATE', 'NUM_POSITIONS', 'RETURN', 'IND P/L', 'TOTAL P/L'])
 totalProfit = 0
     
-DATADIR = os.path.join('..', 'historical-market-data', symbol, 'test2')
+DATADIR = os.path.join('..', 'historical-market-data', symbol, 'test3')
 log_file_name = os.path.join(DATADIR, logname)
 
 data_file_name_list = glob.glob((DATADIR + '\\Q-' + symbol + '-*.csv'))
@@ -65,8 +65,9 @@ for data_file_name in data_file_name_list:
     algo_end_date_str = date + algo_end_time
     algo_end_datetime = pd.to_datetime(algo_end_date_str, format='%Y-%m-%d-%H-%M-%S')
     algo_end_datetime = LOCALTIME.localize(algo_end_datetime).to_pydatetime()
-    
+
     for trade in trade_day_data:
+
         timestamp = int(trade[1])
         
         cur_time = USTradingCalendar.unix_time_nanos_to_datetime(timestamp)
@@ -87,8 +88,8 @@ for data_file_name in data_file_name_list:
     lastTime = cur_time
     
     inPosition = False
-        
     for trade in trade_day_data:
+
         timestamp = int(trade[1])
         
         cur_time = USTradingCalendar.unix_time_nanos_to_datetime(timestamp)

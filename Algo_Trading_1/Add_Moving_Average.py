@@ -23,7 +23,7 @@ LOCALTIME = pytz.timezone('US/Eastern')
       #
 symbol = 'SPXL'
     
-DATADIR = os.path.join('..', 'historical-market-data', symbol, 'test3')
+DATADIR = os.path.join('..', 'historical-market-data', symbol, 'test4')
 
 data_file_name_list = glob.glob((DATADIR + '\\Q-' + symbol + '-*.csv'))
 
