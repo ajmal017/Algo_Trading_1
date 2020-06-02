@@ -20,7 +20,7 @@ def get_trade_day_data(csv_fname):
 
       
 LOCALTIME = pytz.timezone('US/Eastern')
-      
+ #     
 symbol = 'SPXS'
     
 DATADIR = os.path.join('..', 'historical-market-data', symbol, 'test3')
