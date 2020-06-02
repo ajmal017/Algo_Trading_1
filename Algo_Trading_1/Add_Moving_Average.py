@@ -21,9 +21,9 @@ def get_trade_day_data(csv_fname):
       
 LOCALTIME = pytz.timezone('US/Eastern')
       #
-symbol = 'SPXL'
+symbol = 'SPXS'
     
-DATADIR = os.path.join('..', 'historical-market-data', symbol, 'test4')
+DATADIR = os.path.join('..', 'historical-market-data', symbol, 'test3')
 
 data_file_name_list = glob.glob((DATADIR + '\\Q-' + symbol + '-*.csv'))
 
@@ -33,6 +33,10 @@ for data_file_name in data_file_name_list:
     
     date = data_file_name.replace(DATADIR + '\\Q-' + symbol + '-','')
     date = date.replace('.csv','')
+    
+    if os.path.exists(test_data_file_name):
+        # data file already exists, not necessary to download
+        continue
 
     trade_day_data = get_trade_day_data(data_file_name)
     

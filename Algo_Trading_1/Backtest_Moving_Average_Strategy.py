@@ -21,8 +21,8 @@ def get_trade_day_data(csv_fname):
       
 LOCALTIME = pytz.timezone('US/Eastern')
       #
-MA_seconds = 60 * 5
-D_MA_seconds = 30
+MA_seconds = 60 * 1
+D_MA_seconds = 12
 investment_amount = 5000
 symbol = 'SPXL'
 
@@ -100,8 +100,7 @@ for data_file_name in data_file_name_list:
         else:
             # The data queue is full, so we are calculating moving averages
             # The moving average is updated with every piece of data
-            last_quote = quote_data_queue.get()
-            MA = MA + ((float(trade[13]) - last_quote) / MA_seconds)
+            MA = MA + ((float(trade[13]) - quote_data_queue.get()) / MA_seconds)
             quote_data_queue.put(float(trade[13]))
             
             # If we have started calculating the derivative of the moving average, then we need to dequeue the moving average queue before we enqueue the newest moving average since the queue is full
@@ -127,6 +126,7 @@ for data_file_name in data_file_name_list:
     lastTime = cur_time
       
     inPosition = False
+    
     for trade in trade_day_data:
   
         timestamp = int(trade[1])
@@ -138,121 +138,84 @@ for data_file_name in data_file_name_list:
         #    print('back to the future')
         #    continue
 #         
-#         price = float(trade[9])
+        price = float(trade[13])
 #         
-#         # End of day
-#         if (cur_time > algo_end_datetime):
-#             if inPosition:
-#             # Get out of any positions we are in at the end time
-#                 inPosition = False
-#                 percent_return = ((price - buyPrice) / buyPrice)
-#                 curProfit = investment_amount * percent_return   
-#                 profit += curProfit  
-#                 curHigh = price
-#                 curLow = price
-#                 trades_df = trades_df.append({
-#                     'POSITION #': num_positions,
-#                     'TIME': cur_time.strftime('%Y-%m-%d-%H-%M-%S'),
-#                     'ACTION': 'SELL',
-#                     'PRICE': price,
-#                     'RETURN': percent_return,
-#                     'P/L': curProfit
-#                     }, ignore_index=True)
-#                 break
-#         # Buy trigger
-#         if ((price - curLow) >= (curLow * buyTrigger)):
-#             # Check if the price actually dropped before hitting the current low
-#             if maxDrop >= (minDrop * curHigh):
-#                 if not inPosition:
-#                     inPosition = True
-#                     buyPrice = price
-#                     num_positions += 1
-#                     curHigh = price
-#                     curLow = price
-#                     trades_df = trades_df.append({
-#                         'POSITION #': num_positions,
-#                         'TIME': cur_time.strftime('%Y-%m-%d-%H-%M-%S'),
-#                         'ACTION': 'BUY',
-#                         'PRICE': price,
-#                         'RETURN': float('nan'),
-#                         'P/L': float('nan')
-#                         }, ignore_index=True)
-#                 
-#         #Take profit
-#         if (price - buyPrice) >= (buyPrice * takeProfit):
-#             if inPosition:
-#                 inPosition = False
-#                 percent_return = ((price - buyPrice) / buyPrice)
-#                 curProfit = investment_amount * percent_return   
-#                 profit += curProfit  
-#                 curHigh = price
-#                 curLow = price
-#                 maxDrop = 0
-#                 trades_df = trades_df.append({
-#                     'POSITION #': num_positions,
-#                     'TIME': cur_time.strftime('%Y-%m-%d-%H-%M-%S'),
-#                     'ACTION': 'SELL - TAKE PROFIT',
-#                     'PRICE': price,
-#                     'RETURN': percent_return,
-#                     'P/L': curProfit
-#                     }, ignore_index=True)
-#         
-#         # Stop loss/sell trigger
-#         if (curHigh - price) >= (curHigh * sellTrigger):
-#             if inPosition:
-#                 inPosition = False
-#                 percent_return = ((price - buyPrice) / buyPrice)
-#                 curProfit = investment_amount * percent_return   
-#                 profit += curProfit  
-#                 curHigh = price
-#                 curLow = price
-#                 maxDrop = 0
-#                 trades_df = trades_df.append({
-#                     'POSITION #': num_positions,
-#                     'TIME': cur_time.strftime('%Y-%m-%d-%H-%M-%S'),
-#                     'ACTION': 'SELL - STOP LOSS',
-#                     'PRICE': price,
-#                     'RETURN': percent_return,
-#                     'P/L': curProfit
-#                     }, ignore_index=True)
-#                     
-#         
-#         if price > curHigh:
-#             curHigh = price
-#             
-#         if (curHigh - price) > maxDrop:
-#             maxDrop = curHigh - price
-#             curLow = price
-#         
-#         if price < curLow:
-#             curLow = price
-#             
-#         lastTime = cur_time
-#         
-#     trades_df = trades_df.append({
-#         'POSITION #': '',
-#         'TIME': '',
-#         'ACTION': 'FINAL',
-#         'PRICE': '',
-#         'RETURN': profit / investment_amount,
-#         'P/L': profit
-#         }, ignore_index=True)    
-#     #trades_df.to_csv(log_name)
-#     
-#     totalProfit += profit
-#     summary_df = summary_df.append({
-#         'DATE': date,
-#         'NUM_POSITIONS': num_positions, 
-#         'RETURN': profit / investment_amount,
-#         'IND P/L': profit,
-#         'TOTAL P/L': totalProfit
-#         }, ignore_index=True)
-#     
-#     print('Date = {}, Profit = {}, Num Positions = {}'.format(date, profit, num_positions))
-#     #trades_df.to_csv(day_log_name)
-#     
-# print('Total Profit = {}'.format(totalProfit)) 
-# #summary_df.to_csv(log_file_name)   
+        # End of day
+        if (cur_time > algo_end_datetime):
+            if inPosition:
+            # Get out of any positions we are in at the end time
+                inPosition = False
+                percent_return = ((price - buyPrice) / buyPrice)
+                curProfit = investment_amount * percent_return   
+                profit += curProfit  
+                trades_df = trades_df.append({
+                    'POSITION #': num_positions,
+                    'TIME': cur_time.strftime('%Y-%m-%d-%H-%M-%S'),
+                    'ACTION': 'SELL',
+                    'PRICE': price,
+                    'RETURN': percent_return,
+                    'P/L': curProfit
+                    }, ignore_index=True)
+                break
+            
+        MA = MA + ((float(trade[13]) - quote_data_queue.get()) / MA_seconds)
+        quote_data_queue.put(float(trade[13]))
+            
+        D_MA = (MA - MA_queue.get()) / D_MA_seconds
+            
+        MA_queue.put(MA)
+        
+        if (not inPosition):
+            if (D_MA > 0):
+                inPosition = True
+                buyPrice = price
+                num_positions += 1
+                trades_df = trades_df.append({
+                         'POSITION #': num_positions,
+                         'TIME': cur_time.strftime('%Y-%m-%d-%H-%M-%S'),
+                         'ACTION': 'BUY',
+                         'PRICE': price,
+                         'RETURN': float('nan'),
+                         'P/L': float('nan')
+                         }, ignore_index=True)
+        else:
+            if (D_MA < 0):
+                inPosition = False
+                percent_return = ((price - buyPrice) / buyPrice)
+                curProfit = investment_amount * percent_return   
+                profit += curProfit  
+                trades_df = trades_df.append({
+                    'POSITION #': num_positions,
+                    'TIME': cur_time.strftime('%Y-%m-%d-%H-%M-%S'),
+                    'ACTION': 'SELL',
+                    'PRICE': price,
+                    'RETURN': percent_return,
+                    'P/L': curProfit
+                    }, ignore_index=True)
+         
+    trades_df = trades_df.append({
+        'POSITION #': '',
+        'TIME': '',
+        'ACTION': 'FINAL',
+        'PRICE': '',
+        'RETURN': profit / investment_amount,
+        'P/L': profit
+        }, ignore_index=True)    
+    trades_df.to_csv(day_log_name)
+     
+    totalProfit += profit
+    summary_df = summary_df.append({
+        'DATE': date,
+        'NUM_POSITIONS': num_positions, 
+        'RETURN': profit / investment_amount,
+        'IND P/L': profit,
+        'TOTAL P/L': totalProfit
+        }, ignore_index=True)
+     
+    print('Date = {}, Profit = {}, Num Positions = {}'.format(date, profit, num_positions))
+     
+print('Total Profit = {}'.format(totalProfit)) 
+summary_df.to_csv(log_file_name)   
     
     
     
