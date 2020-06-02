@@ -20,7 +20,7 @@ def get_trade_day_data(csv_fname):
       yield trade_record
       
 LOCALTIME = pytz.timezone('US/Eastern')
-      #
+      
 MA_seconds = 60 * 1
 D_MA_seconds = 12
 investment_amount = 5000
