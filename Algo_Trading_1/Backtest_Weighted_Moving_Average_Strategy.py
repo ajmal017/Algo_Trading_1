@@ -23,30 +23,31 @@ def get_trade_day_data(csv_fname):
       
 LOCALTIME = pytz.timezone('US/Eastern')
       #
-MA_seconds = 60 * 1
-D_MA_seconds = 12
-weight_spread = 5
+WMA_seconds = 60 * 3
+MA_WMA_seconds = 60 * 3
+D_MA_seconds = 6
+weight_spread = 2
 investment_amount = 5000
 symbol = 'SPXL'
 
-logname = 'LOGWMA-MA{}-DMA{}-WS.csv'.format(MA_seconds, D_MA_seconds, weight_spread) 
+logname = 'LOGWMA{}-MA{}-DMA{}-WS{}.csv'.format(WMA_seconds, MA_WMA_seconds, D_MA_seconds, weight_spread) 
 
 summary_df = pd.DataFrame(columns=['DATE', 'NUM_POSITIONS', 'RETURN', 'IND P/L', 'TOTAL P/L'])
 totalProfit = 0
     
-DATADIR = os.path.join('..', 'historical-market-data', symbol, 'test7')
+DATADIR = os.path.join('..', 'historical-market-data', symbol, 'test6')
 log_file_name = os.path.join(DATADIR, logname)
 
 data_file_name_list = glob.glob((DATADIR + '\\ST-' + symbol + '-*.csv'))
 
-algo_start_time = '-09-35-00'        # utc
+algo_start_time = '-09-31-00'        # utc
 algo_end_time = '-15-56-00'        # utc
 
 weight_list = []
 
 # The weights to apply to the previous quotes
-for i in range(MA_seconds + 1):
-    weight_list.append((1 - weight_spread + ((i * weight_spread) / (MA_seconds / 2))))
+for i in range(WMA_seconds + 1):
+    weight_list.append((1 - weight_spread + ((i * weight_spread) / (WMA_seconds / 2))))
     
 
 for data_file_name in data_file_name_list:
@@ -58,7 +59,7 @@ for data_file_name in data_file_name_list:
     date = data_file_name.replace(DATADIR + '\\ST-' + symbol + '-','')
     date = date.replace('.csv','')
     
-    fname = 'DAYLOGWMA-{}-{}.csv'.format(symbol, date)
+    fname = 'LOGDAY-{}-{}-WMA{}-MA{}-DMA{}-WS{}.csv'.format(symbol, date, WMA_seconds, MA_WMA_seconds, D_MA_seconds, weight_spread)
     day_log_name = os.path.join(DATADIR, fname)
 
     trade_day_data = get_trade_day_data(data_file_name)
@@ -76,11 +77,14 @@ for data_file_name in data_file_name_list:
     # Counter of what quote we are on
     quote_num = 0
     past_start_time = False
+    WMA_calcs_started = False
     MA_calcs_started = False
     D_MA_calcs_started = False
+    WMA = 0
     MA = 0
-    quote_data_queue = WeightedDeque(MA_seconds + 1, weight_spread)
+    quote_data_queue = WeightedDeque(WMA_seconds + 1, weight_spread)
     quote_data_queue.assignWeights(weight_list)
+    WMA_queue = Queue(maxsize = MA_WMA_seconds)
     MA_queue = Queue(maxsize = D_MA_seconds)
     D_MA = 0
 
@@ -96,33 +100,56 @@ for data_file_name in data_file_name_list:
         if (not past_start_time and cur_time > algo_start_datetime):
             past_start_time = True        
          
-        # Get moving average calculations started
-        if (not MA_calcs_started):
+        # Get weighted moving average calculations started
+        if (not WMA_calcs_started):
             # If we haven't started, add data to the queue
             quote_data_queue.push(float(trade[13]))
              
             if (quote_data_queue.full()):
                 # If we have filled the queue with data, then the moving average can be calculated
-                MA_calcs_started = True
-                MA = quote_data_queue.getWeightedAverage()
-                MA_queue.put(MA)
+                WMA_calcs_started = True
+                WMA = quote_data_queue.getWeightedAverage()
+                WMA_queue.put(MA)
          
         else:
-            # The data queue is full, so we are calculating moving averages
-            # The moving average is updated with every piece of data
+            # The data queue is full, so we are calculating weighted moving averages
+            # The weighted moving average is updated with every piece of data
             quote_data_queue.pop()                      # Remove old quote data
             quote_data_queue.push(float(trade[13]))     # Add new quote data
-            MA = quote_data_queue.getWeightedAverage()  # Get new moving average
-             
-            # If we have started calculating the derivative of the moving average, then we need to pop the moving average queue before we push the newest moving average since the queue is full
-            if (D_MA_calcs_started):
-                D_MA = (MA - MA_queue.get()) / D_MA_seconds
-             
-            MA_queue.put(MA)
-             
-            if (MA_queue.full()):
-                # This will be executed repetitively, but it doesn't matter
-                D_MA_calcs_started = True
+            WMA = quote_data_queue.getWeightedAverage() # Get new moving average
+            
+            
+            # If we haven't calculated moving average of the weighted moving average yet, then we fill the queues with data, then calculate moving average
+            if (not MA_calcs_started):
+                
+                # Calculating moving average initially by using MA as a sum. Will eventually divide by the number of entries to get average
+                MA = MA + WMA
+                
+                WMA_queue.put(WMA)
+                        
+                if (WMA_queue.full()):
+                    MA_calcs_started = True
+                    
+                    # Calculate moving average by dividing the sum we were generating by the number of entries that were summed
+                    MA = MA / MA_WMA_seconds
+                    MA_queue.put(MA)
+            
+            # If moving average has been calculated, we can continue to calculate moving average by the common method        
+            else:
+                
+                MA = MA + ((WMA - WMA_queue.get()) / MA_WMA_seconds)
+                WMA_queue.put(WMA)
+                
+                # If we have started calculating the derivative of the moving average, 
+                # then we need to pop the moving average queue before we push the newest moving average since the queue is full
+                if (D_MA_calcs_started):
+                    D_MA = (MA - MA_queue.get()) / D_MA_seconds
+                    
+                MA_queue.put(MA)
+                          
+                if (MA_queue.full()):
+                    # This will be executed repetitively, but it doesn't matter
+                    D_MA_calcs_started = True
  
          
         if (past_start_time and D_MA_calcs_started):
@@ -134,6 +161,8 @@ for data_file_name in data_file_name_list:
     lastTime = cur_time
        
     inPosition = False
+    buySignal = False
+    sellSignal = False
      
     for trade in trade_day_data:
    
@@ -168,18 +197,25 @@ for data_file_name in data_file_name_list:
              
         quote_data_queue.pop()                      # Remove old quote data
         quote_data_queue.push(price)                # Add new quote data
-        MA = quote_data_queue.getWeightedAverage()  # Get new moving average
-             
-        D_MA = (MA - MA_queue.get()) / D_MA_seconds
-             
-        MA_queue.put(MA)
+        WMA = quote_data_queue.getWeightedAverage()  # Get new moving average
+        
+        MA = MA + ((WMA - WMA_queue.get()) / MA_WMA_seconds)
+        WMA_queue.put(WMA)
+            
+        lastMA = MA_queue.get()
+        D_MA = (MA - lastMA) / D_MA_seconds
          
+        MA_queue.put(MA)
+        
+        
         if (not inPosition):
-            if (D_MA > 0.000):
-                inPosition = True
-                buyPrice = price
-                num_positions += 1
-                trades_df = trades_df.append({
+            
+            if (buySignal):
+                if (price < MA):
+                    inPosition = True
+                    buyPrice = price
+                    num_positions += 1
+                    trades_df = trades_df.append({
                          'POSITION #': num_positions,
                          'TIME': cur_time.strftime('%Y-%m-%d-%H-%M-%S'),
                          'ACTION': 'BUY',
@@ -187,20 +223,35 @@ for data_file_name in data_file_name_list:
                          'RETURN': float('nan'),
                          'P/L': float('nan')
                          }, ignore_index=True)
+                    
+                    buySignal = False
+                    continue
+                
+            if (D_MA > 0):
+                buySignal = True
         else:
+            
+            if (sellSignal):
+                if (price > MA):
+                    inPosition = False
+                    percent_return = ((price - buyPrice) / buyPrice)
+                    curProfit = investment_amount * percent_return   
+                    profit += curProfit  
+                    trades_df = trades_df.append({
+                        'POSITION #': num_positions,
+                        'TIME': cur_time.strftime('%Y-%m-%d-%H-%M-%S'),
+                        'ACTION': 'SELL',
+                        'PRICE': price,
+                        'RETURN': percent_return,
+                        'P/L': curProfit
+                        }, ignore_index=True)
+                    
+                    sellSignal = False
+                    continue
+                    
             if (D_MA < 0):
-                inPosition = False
-                percent_return = ((price - buyPrice) / buyPrice)
-                curProfit = investment_amount * percent_return   
-                profit += curProfit  
-                trades_df = trades_df.append({
-                    'POSITION #': num_positions,
-                    'TIME': cur_time.strftime('%Y-%m-%d-%H-%M-%S'),
-                    'ACTION': 'SELL',
-                    'PRICE': price,
-                    'RETURN': percent_return,
-                    'P/L': curProfit
-                    }, ignore_index=True)
+                sellSignal = True
+                
           
     trades_df = trades_df.append({
         'POSITION #': '',
