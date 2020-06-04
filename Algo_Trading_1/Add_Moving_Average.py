@@ -21,9 +21,9 @@ def get_trade_day_data(csv_fname):
       
 LOCALTIME = pytz.timezone('US/Eastern')
  #     
-symbol = 'SPXS'
+symbol = 'TSLA'
     
-DATADIR = os.path.join('..', 'historical-market-data', symbol, 'test3')
+DATADIR = os.path.join('..', 'historical-market-data', symbol, 'test1')
 
 data_file_name_list = glob.glob((DATADIR + '\\Q-' + symbol + '-*.csv'))
 
@@ -54,15 +54,18 @@ for data_file_name in data_file_name_list:
         num_quotes = 0
         last_second = 0
         
+        first = True
+        
         for trade in trade_day_data:
             timestamp = int(trade[1])
             
             cur_time = USTradingCalendar.unix_time_nanos_to_datetime(timestamp)
 
             seconds = getattr(cur_time, 'second')
-            if (seconds == last_second):
+            if (seconds == last_second or first):
                 num_quotes += 1
                 sum_asks += float(trade[9])
+                first = False
             else:
                 average_ask_second = sum_asks / num_quotes
                 num_quotes = 1
