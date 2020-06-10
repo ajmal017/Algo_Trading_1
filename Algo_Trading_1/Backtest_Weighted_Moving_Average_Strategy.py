@@ -27,9 +27,9 @@ WMA_seconds = 60 * 2
 D_MA_seconds = 12
 weight_spread = 3
 investment_amount = 5000
-investment_increment = .05
-investment_time = 4 * 60        # Time to fully invest/divest (seconds)
-investment_time_inc = (investment_increment / investment_amount) * (investment_time)
+investment_increment = .25
+investment_time = 2 * 60        # Time to fully invest/divest (seconds)
+investment_time_inc = (investment_increment) * (investment_time)
 symbol = 'SPXL'
 
 logname = 'LOGWMA{}-INC{}-T{}.csv'.format(WMA_seconds, investment_increment, investment_time) 
@@ -37,7 +37,7 @@ logname = 'LOGWMA{}-INC{}-T{}.csv'.format(WMA_seconds, investment_increment, inv
 summary_df = pd.DataFrame(columns=['DATE', 'NUM_POSITIONS', 'RETURN', 'IND P/L', 'TOTAL P/L'])
 totalProfit = 0
     
-DATADIR = os.path.join('..', 'historical-market-data', symbol, 'test3')
+DATADIR = os.path.join('..', 'historical-market-data', symbol, 'test6')
 log_file_name = os.path.join(DATADIR, logname)
 
 data_file_name_list = glob.glob((DATADIR + '\\ST-' + symbol + '-*.csv'))
@@ -117,10 +117,13 @@ for data_file_name in data_file_name_list:
             quote_data_queue.push(float(trade[13]))     # Add new quote data
             WMA = quote_data_queue.getWeightedAverage() # Get new moving average
             
-            WMA_queue.put(WMA)
                         
             if (WMA_queue.full()):
                 D_MA_calcs_started = True
+                lastWMA = WMA_queue.get()
+                D_MA = (WMA - lastWMA) / D_MA_seconds
+                
+            WMA_queue.put(WMA)
  
          
         if (past_start_time and D_MA_calcs_started):
@@ -198,9 +201,10 @@ for data_file_name in data_file_name_list:
         if (time_in_trend >= investment_time_inc):
             
             if (positiveTrend):
-                time_in_trend = 0
+                
                 
                 if (cash > 0):
+                    time_in_trend = 0
                     
                     if (increment > cash):
                         increment = cash
@@ -223,9 +227,11 @@ for data_file_name in data_file_name_list:
             
             else:
                 
-                time_in_trend = 0
+                
                 
                 if (shares > 0):
+                    
+                    time_in_trend = 0
                     
                     if (increment > (shares * price)):
                         increment = shares * price
@@ -248,32 +254,32 @@ for data_file_name in data_file_name_list:
                          'VALUE': value,
                          'P/L': (value - investment_amount)
                          }, ignore_index=True)
-
+        lastTime = cur_time
                 
           
-    trades_df = trades_df.append({
-        'POSITION #': '',
-        'TIME': '',
-        'ACTION': 'FINAL',
-        'PRICE': '',
-        'RETURN': profit / investment_amount,
-        'P/L': profit
-        }, ignore_index=True)    
-    trades_df.to_csv(day_log_name)
+#     trades_df = trades_df.append({
+#         'POSITION #': '',
+#         'TIME': '',
+#         'ACTION': 'FINAL',
+#         'PRICE': '',
+#         'RETURN': profit / investment_amount,
+#         'P/L': profit
+#         }, ignore_index=True)    
+#     trades_df.to_csv(day_log_name)
+#       
+#     totalProfit += profit
+#     summary_df = summary_df.append({
+#         'DATE': date,
+#         'NUM_POSITIONS': num_positions, 
+#         'RETURN': profit / investment_amount,
+#         'IND P/L': profit,
+#         'TOTAL P/L': totalProfit
+#         }, ignore_index=True)
       
-    totalProfit += profit
-    summary_df = summary_df.append({
-        'DATE': date,
-        'NUM_POSITIONS': num_positions, 
-        'RETURN': profit / investment_amount,
-        'IND P/L': profit,
-        'TOTAL P/L': totalProfit
-        }, ignore_index=True)
+    print('Date = {}, Profit = {}, Num Positions = {}'.format(date, (value - investment_amount), num_positions))
       
-    print('Date = {}, Profit = {}, Num Positions = {}'.format(date, profit, num_positions))
-      
-print('Total Profit = {}'.format(totalProfit)) 
-summary_df.to_csv(log_file_name)   
+# print('Total Profit = {}'.format(totalProfit)) 
+# summary_df.to_csv(log_file_name)   
      
      
      

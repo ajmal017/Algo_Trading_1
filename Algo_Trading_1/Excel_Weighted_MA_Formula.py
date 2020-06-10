@@ -1,5 +1,5 @@
 starting_row_weight = 62
-column_weight = 'AK'
+column_weight = 'AF'
 
 starting_row_data = 2
 column_data = 'N'
