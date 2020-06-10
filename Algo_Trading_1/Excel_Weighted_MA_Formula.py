@@ -1,10 +1,10 @@
 starting_row_weight = 62
-column_weight = 'AF'
+column_weight = 'AK'
 
 starting_row_data = 2
 column_data = 'N'
 
-time = 60 * 3 + 1
+time = 60 * 2 + 1
 
 formula = '=('
 
